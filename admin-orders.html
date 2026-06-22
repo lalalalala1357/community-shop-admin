@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>訂單管理｜社區團購站</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="orders">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="admin.html">小舖店務</a>
+        <nav class="nav">
+          <a href="admin.html">儀表板</a>
+          <a href="admin-products.html">商品管理</a>
+          <a class="active" href="admin-orders.html">訂單管理</a>
+          <a href="admin-pickup.html">取貨管理</a>
+          <a href="admin-announcements.html">公告管理</a>
+          <a href="admin-wishes.html">許願管理</a>
+          <button class="logoutBtn">登出</button>
+        </nav>
+      </div>
+    </header>
+    <main class="container admin-layout">
+      <h1>訂單管理</h1>
+      <div class="toolbar">
+        <div class="field"><label>搜尋</label><input id="orderFilter" placeholder="訂單編號、姓名、電話、商品名稱"></div>
+        <div class="field"><label>品項</label><select id="orderCategoryFilter"><option value="">全部品項</option></select></div>
+        <div class="field"><label>狀態</label><select id="statusFilter"><option value="">全部狀態</option><option>已下單</option><option>可取貨</option><option>已取貨</option><option>已取消</option><option>未取貨</option></select></div>
+        <button class="btn success" id="markProductPickupBtn" type="button" hidden>此品項全部改為可取貨</button>
+        <button class="btn" id="exportCsvBtn">匯出 CSV</button>
+        <button class="btn secondary" id="purchaseListBtn">產生採購清單</button>
+      </div>
+      <div class="notice" id="purchaseListBox" style="display:none"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>訂單編號</th><th>客人</th><th>商品</th><th>數量</th><th>總金額</th><th>狀態</th></tr></thead>
+          <tbody id="ordersTable"></tbody>
+        </table>
+      </div>
+    </main>
+    <nav class="bottom-nav">
+      <a href="admin.html">儀表板</a>
+      <a href="admin-products.html">商品</a>
+      <a class="active" href="admin-orders.html">訂單</a>
+      <a href="admin-pickup.html">取貨</a>
+    </nav>
+  </div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

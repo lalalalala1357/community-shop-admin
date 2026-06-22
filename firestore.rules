@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function onlyChanged(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update, delete: if signedIn();
+    }
+
+    match /orders/{orderId} {
+      allow create: if true;
+
+      // Lets customers open /order-detail.html?id=O... directly.
+      allow get: if true;
+
+      // Protect customer phone/name data from public collection listing.
+      // Admin pages require Firebase Authentication login.
+      allow list, update, delete: if signedIn();
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow create, update, delete: if signedIn();
+    }
+
+    match /wishes/{wishId} {
+      allow read: if true;
+      allow create: if true;
+      allow delete: if signedIn();
+
+      // Admin can manage wishes. Anonymous users can only add one vote.
+      allow update: if signedIn()
+        || (
+          onlyChanged(['votes', 'voters', 'updatedAt'])
+          && request.resource.data.votes == resource.data.votes + 1
+          && request.resource.data.voters.size() == resource.data.voters.size() + 1
+          && request.resource.data.voters.hasAll(resource.data.voters)
+        );
+    }
+  }
+}

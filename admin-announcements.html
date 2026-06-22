@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>公告管理｜社區團購站</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="announcements">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="admin.html">小舖店務</a>
+        <nav class="nav">
+          <a href="admin.html">儀表板</a>
+          <a href="admin-products.html">商品管理</a>
+          <a href="admin-orders.html">訂單管理</a>
+          <a href="admin-pickup.html">取貨管理</a>
+          <a class="active" href="admin-announcements.html">公告管理</a>
+          <a href="admin-wishes.html">許願管理</a>
+          <button class="logoutBtn">登出</button>
+        </nav>
+      </div>
+    </header>
+    <main class="container admin-layout">
+      <div class="section-head">
+        <h1>公告管理</h1>
+        <button class="btn inline" id="newAnnouncementBtn">新增公告</button>
+      </div>
+      <div class="grid" id="announcementsTable"></div>
+    </main>
+    <div class="modal" id="announcementModal">
+      <div class="card modal-panel">
+        <button class="btn secondary" id="closeAnnouncementModal" type="button">關閉</button>
+        <div id="announcementModalPanel"></div>
+      </div>
+    </div>
+    <nav class="bottom-nav">
+      <a href="admin.html">儀表板</a>
+      <a href="admin-products.html">商品</a>
+      <a href="admin-orders.html">訂單</a>
+      <a href="admin-pickup.html">取貨</a>
+    </nav>
+  </div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

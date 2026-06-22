@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>儀表板｜社區團購站</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="admin">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="admin.html">小舖店務</a>
+        <nav class="nav">
+          <a class="active" href="admin.html">儀表板</a>
+          <a href="admin-products.html">商品管理</a>
+          <a href="admin-orders.html">訂單管理</a>
+          <a href="admin-pickup.html">取貨管理</a>
+          <a href="admin-announcements.html">公告管理</a>
+          <a href="admin-wishes.html">許願管理</a>
+          <button class="logoutBtn">登出</button>
+        </nav>
+      </div>
+    </header>
+    <main class="container admin-layout">
+      <h1>今日店務</h1>
+      <div class="grid stats">
+        <div class="card stat"><span class="muted">總商品數</span><strong id="totalProducts">0</strong></div>
+        <div class="card stat"><span class="muted">總訂單數</span><strong id="totalOrders">0</strong></div>
+        <div class="card stat"><span class="muted">今日新增訂單</span><strong id="todayOrders">0</strong></div>
+        <div class="card stat"><span class="muted">待取貨訂單</span><strong id="pickupOrders">0</strong></div>
+      </div>
+    </main>
+    <nav class="bottom-nav">
+      <a class="active" href="admin.html">儀表板</a>
+      <a href="admin-products.html">商品</a>
+      <a href="admin-orders.html">訂單</a>
+      <a href="admin-pickup.html">取貨</a>
+    </nav>
+  </div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
