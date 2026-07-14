@@ -1242,6 +1242,48 @@ tbody tr:hover {
   margin: 16px 0;
 }
 
+.admin-filter-toolbar {
+  margin-top: 0;
+}
+
+.admin-summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -2px 0 14px;
+}
+
+.summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.summary-chip:hover {
+  transform: translateY(-1px);
+  border-color: #fed7aa;
+  box-shadow: 0 8px 22px rgba(180, 83, 9, 0.12);
+}
+
+.summary-chip strong {
+  color: var(--primary);
+}
+
+.summary-chip.active {
+  border-color: #fb923c;
+  background: #fff7ed;
+  color: var(--primary);
+}
+
 .stats {
   grid-template-columns: repeat(2, 1fr);
 }

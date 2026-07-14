@@ -1487,7 +1487,13 @@ async function initAdminProducts() {
   requireAdmin(async () => {
     const modal = $("#productModal");
     const panel = $("#productModalPanel");
+    const productSearchInput = $("#adminProductSearch");
+    const productCategorySelect = $("#adminProductCategoryFilter");
+    const productStatusSelect = $("#adminProductStatusFilter");
     let currentProducts = [];
+    let productTextFilter = "";
+    let productCategoryFilter = "";
+    let productStatusFilter = "";
 
     const optimizeProductImages = async products => {
       const targets = products.filter(product => product.id && product.imageUrls?.length && (product.hasEmbeddedImages || product.imageStorageVersion !== 2));
@@ -1509,9 +1515,41 @@ async function initAdminProducts() {
       return targets.length;
     };
 
-    const render = async () => {
+    const productStatusKey = product => ({
+      "上架": "active",
+      "未開賣": "upcoming",
+      "已截止": "expired",
+      "下架": "inactive"
+    })[productAdminStatus(product).label] || "";
+
+    const syncProductCategoryOptions = () => {
+      if (!productCategorySelect) return;
+      const categories = [...new Set(currentProducts.map(product => product.category || "其他"))].sort((a, b) => a.localeCompare(b, "zh-Hant"));
+      if (productCategoryFilter && !categories.includes(productCategoryFilter)) productCategoryFilter = "";
+      productCategorySelect.innerHTML = `<option value="">全部分類</option>${categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("")}`;
+      productCategorySelect.value = productCategoryFilter;
+    };
+
+    const filteredProducts = () => currentProducts.filter(product => {
+      const haystack = [product.name, product.category, product.spec].map(value => String(value || "").toLowerCase()).join(" ");
+      const matchesText = !productTextFilter || haystack.includes(productTextFilter);
+      const matchesCategory = !productCategoryFilter || (product.category || "其他") === productCategoryFilter;
+      const matchesStatus = !productStatusFilter || productStatusKey(product) === productStatusFilter;
+      return matchesText && matchesCategory && matchesStatus;
+    });
+
+    const loadProducts = async () => {
       currentProducts = await allProducts();
       if (await optimizeProductImages(currentProducts)) currentProducts = await allProducts();
+      currentProducts = currentProducts.sort((a, b) => {
+        const statusDiff = Number(productNeedsReopen(b)) - Number(productNeedsReopen(a));
+        if (statusDiff) return statusDiff;
+        return Number(b.isActive !== false) - Number(a.isActive !== false) || sortByCreatedDesc(a, b);
+      });
+      syncProductCategoryOptions();
+    };
+
+    const render = () => {
       const expiredProducts = currentProducts.filter(productNeedsReopen);
       $("#expiredProductNotice").innerHTML = expiredProducts.length ? `
         <div class="notice admin-alert">
@@ -1519,12 +1557,8 @@ async function initAdminProducts() {
           <span>前台不會顯示已截止商品。可按「延長 7 天」快速恢復開團，或「複製開團」建立新一波商品。</span>
         </div>
       ` : "";
-      currentProducts = currentProducts.sort((a, b) => {
-        const statusDiff = Number(productNeedsReopen(b)) - Number(productNeedsReopen(a));
-        if (statusDiff) return statusDiff;
-        return Number(b.isActive !== false) - Number(a.isActive !== false) || sortByCreatedDesc(a, b);
-      });
-      $("#productsTable").innerHTML = currentProducts.map(product => {
+      const visibleProducts = filteredProducts();
+      $("#productsTable").innerHTML = visibleProducts.map(product => {
         const status = productAdminStatus(product);
         const needsReopen = productNeedsReopen(product);
         return `
@@ -1545,7 +1579,7 @@ async function initAdminProducts() {
           </td>
         </tr>
       `;
-      }).join("") || `<tr><td colspan="9" class="empty">尚無商品</td></tr>`;
+      }).join("") || `<tr><td colspan="9" class="empty">${currentProducts.length ? "查無符合條件的商品" : "尚無商品"}</td></tr>`;
 
       $$(".editProduct").forEach(button => button.addEventListener("click", async () => {
         const product = currentProducts.find(item => item.id === button.dataset.id);
@@ -1563,7 +1597,7 @@ async function initAdminProducts() {
           saleEnd: "",
           updatedAt: serverTimestamp()
         });
-        await render();
+        await refresh();
       }));
       $$(".duplicateProduct").forEach(button => button.addEventListener("click", async () => {
         const product = currentProducts.find(item => item.id === button.dataset.id);
@@ -1577,9 +1611,14 @@ async function initAdminProducts() {
             deleteDoc(doc(db, "products", button.dataset.id)),
             deleteDoc(doc(db, "productImages", button.dataset.id))
           ]);
-          await render();
+          await refresh();
         }
       }));
+    };
+
+    const refresh = async () => {
+      await loadProducts();
+      render();
     };
 
     const openProductModal = async product => {
@@ -1627,7 +1666,7 @@ async function initAdminProducts() {
           saveProductCategory(category)
         ]);
         modal.classList.remove("open");
-        await render();
+        await refresh();
       });
     };
 
@@ -1649,7 +1688,19 @@ async function initAdminProducts() {
     };
 
     $("#newProductBtn").addEventListener("click", () => openProductModal());
-    await render();
+    productSearchInput?.addEventListener("input", event => {
+      productTextFilter = event.target.value.trim().toLowerCase();
+      render();
+    });
+    productCategorySelect?.addEventListener("change", event => {
+      productCategoryFilter = event.target.value;
+      render();
+    });
+    productStatusSelect?.addEventListener("change", event => {
+      productStatusFilter = event.target.value;
+      render();
+    });
+    await refresh();
     const productDraft = sessionStorage.getItem("productDraftFromWish");
     if (productDraft) {
       sessionStorage.removeItem("productDraftFromWish");
@@ -1775,14 +1826,23 @@ async function initAdminOrders() {
     let textFilter = "";
     let categoryFilter = "";
     let statusFilter = "";
+    let viewFilter = "all";
     let orderSort = "latest";
+
+    const matchesOrderView = order => {
+      if (viewFilter === "pending") return activeOrderStatuses.includes(order.status);
+      if (viewFilter === "cancel") return order.cancelRequested;
+      if (viewFilter === "todayPickup") return order.status === "可取貨" && isToday(order.pickupTime);
+      if (viewFilter === "missed") return order.status === "未取貨" || (!["已取貨", "已取消"].includes(order.status) && isPastPickupDate(order.pickupTime));
+      return true;
+    };
 
     const filterOrders = () => {
       const list = orders.filter(order => {
         const matchesText = !textFilter || [order.orderId, order.customerName, order.phone, order.productName].some(value => String(value || "").toLowerCase().includes(textFilter));
         const matchesCategory = !categoryFilter || order.productName === categoryFilter;
         const matchesStatus = !statusFilter || order.status === statusFilter;
-        return matchesText && matchesCategory && matchesStatus;
+        return matchesText && matchesCategory && matchesStatus && matchesOrderView(order);
       });
       return sortOrders(list, orderSort);
     };
@@ -1790,7 +1850,31 @@ async function initAdminOrders() {
     const categories = [...new Set(orders.map(order => order.productName).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-Hant"));
     $("#orderCategoryFilter").innerHTML = `<option value="">全部品項</option>${categories.map(name => `<option value="${name}">${name}</option>`).join("")}`;
 
+    const renderOrderSummary = () => {
+      const summary = $("#orderViewSummary");
+      if (!summary) return;
+      const items = [
+        { key: "all", label: "全部", count: orders.length },
+        { key: "pending", label: "待處理", count: orders.filter(order => activeOrderStatuses.includes(order.status)).length },
+        { key: "cancel", label: "取消申請", count: orders.filter(order => order.cancelRequested).length },
+        { key: "todayPickup", label: "今日取貨", count: orders.filter(order => order.status === "可取貨" && isToday(order.pickupTime)).length },
+        { key: "missed", label: "未取貨", count: orders.filter(order => order.status === "未取貨" || (!["已取貨", "已取消"].includes(order.status) && isPastPickupDate(order.pickupTime))).length }
+      ];
+      summary.innerHTML = items.map(item => `
+        <button class="summary-chip ${viewFilter === item.key ? "active" : ""}" type="button" data-view="${item.key}">
+          <span>${item.label}</span><strong>${item.count}</strong>
+        </button>
+      `).join("");
+      $$(".summary-chip", summary).forEach(button => button.addEventListener("click", () => {
+        viewFilter = button.dataset.view;
+        const select = $("#orderViewFilter");
+        if (select) select.value = viewFilter;
+        render(filterOrders());
+      }));
+    };
+
     const render = list => {
+      renderOrderSummary();
       $("#ordersTable").innerHTML = list.map(orderRow).join("") || `<tr><td colspan="7" class="empty">查無訂單</td></tr>`;
     };
     const refreshBatchButton = () => {
@@ -1808,6 +1892,10 @@ async function initAdminOrders() {
     });
     $("#statusFilter").addEventListener("change", event => {
       statusFilter = event.target.value;
+      render(filterOrders());
+    });
+    $("#orderViewFilter").addEventListener("change", event => {
+      viewFilter = event.target.value;
       render(filterOrders());
     });
     $("#adminOrderSort").addEventListener("change", event => {

@@ -28,11 +28,13 @@
         <div class="field"><label>搜尋</label><input id="orderFilter" placeholder="訂單編號、姓名、電話、商品名稱"></div>
         <div class="field"><label>品項</label><select id="orderCategoryFilter"><option value="">全部品項</option></select></div>
         <div class="field"><label>狀態</label><select id="statusFilter"><option value="">全部狀態</option><option>已下單</option><option>可取貨</option><option>已取貨</option><option>已取消</option><option>未取貨</option></select></div>
+        <div class="field"><label>視角</label><select id="orderViewFilter"><option value="all">全部訂單</option><option value="pending">待處理</option><option value="cancel">取消申請</option><option value="todayPickup">今日取貨</option><option value="missed">未取貨</option></select></div>
         <div class="field"><label>排序</label><select id="adminOrderSort"><option value="latest">最新</option><option value="oldest">最舊</option></select></div>
         <button class="btn success" id="markProductPickupBtn" type="button" hidden>此品項全部改為可取貨</button>
         <button class="btn" id="exportCsvBtn">匯出 CSV</button>
         <button class="btn secondary" id="purchaseListBtn">產生採購清單</button>
       </div>
+      <div class="admin-summary-strip" id="orderViewSummary"></div>
       <div class="notice" id="purchaseListBox" style="display:none"></div>
       <div class="table-wrap">
         <table>
