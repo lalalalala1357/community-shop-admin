@@ -327,6 +327,32 @@ function isProductOrderable(product) {
   return product.isActive !== false && isProductOnSale(product) && !isProductDeadlinePassed(product);
 }
 
+function productAdminStatus(product) {
+  if (product.isActive === false) return { label: "下架", color: "gray" };
+  if (product.saleStart && toDate(product.saleStart) > new Date()) return { label: "未開賣", color: "orange" };
+  if ((product.saleEnd && toDate(product.saleEnd) < new Date()) || isProductDeadlinePassed(product)) return { label: "已截止", color: "red" };
+  return { label: "上架", color: "green" };
+}
+
+function productNeedsReopen(product) {
+  const status = productAdminStatus(product);
+  return product.isActive !== false && status.label === "已截止";
+}
+
+function futureIso(days, hour = 23, minute = 59) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  date.setHours(hour, minute, 0, 0);
+  return date.toISOString();
+}
+
+function nextCampaignDates() {
+  return {
+    deadline: futureIso(7, 23, 59),
+    pickupTime: futureIso(8, 12, 0)
+  };
+}
+
 function compactDateText(value) {
   const date = toDate(value);
   if (!date) return "-";
@@ -1260,10 +1286,6 @@ function initLogin() {
 
 async function allProducts() {
   const snap = await getDocs(collection(db, "products"));
-  if (await syncExpiredProducts(snap.docs)) {
-    const freshSnap = await getDocs(collection(db, "products"));
-    return freshSnap.docs.map(item => normalizeProduct(item.id, item.data())).sort(sortByCreatedDesc);
-  }
   return snap.docs.map(item => normalizeProduct(item.id, item.data())).sort(sortByCreatedDesc);
 }
 
@@ -1467,12 +1489,6 @@ async function initAdminProducts() {
     const panel = $("#productModalPanel");
     let currentProducts = [];
 
-    const deactivateExpiredProducts = async products => {
-      const expiredProducts = products.filter(product => product.isActive !== false && isProductDeadlinePassed(product));
-      await Promise.all(expiredProducts.map(product => updateDoc(doc(db, "products", product.id), { isActive: false, updatedAt: serverTimestamp() })));
-      return expiredProducts.length;
-    };
-
     const optimizeProductImages = async products => {
       const targets = products.filter(product => product.id && product.imageUrls?.length && (product.hasEmbeddedImages || product.imageStorageVersion !== 2));
       await Promise.allSettled([...new Set(products.map(product => product.category || "其他"))].map(saveProductCategory));
@@ -1495,29 +1511,65 @@ async function initAdminProducts() {
 
     const render = async () => {
       currentProducts = await allProducts();
-      if (await deactivateExpiredProducts(currentProducts)) currentProducts = await allProducts();
       if (await optimizeProductImages(currentProducts)) currentProducts = await allProducts();
-      currentProducts = currentProducts.sort((a, b) => Number(b.isActive !== false) - Number(a.isActive !== false));
-      $("#productsTable").innerHTML = currentProducts.map(product => `
-        <tr>
+      const expiredProducts = currentProducts.filter(productNeedsReopen);
+      $("#expiredProductNotice").innerHTML = expiredProducts.length ? `
+        <div class="notice admin-alert">
+          <strong>${expiredProducts.length} 個商品已截止</strong>
+          <span>前台不會顯示已截止商品。可按「延長 7 天」快速恢復開團，或「複製開團」建立新一波商品。</span>
+        </div>
+      ` : "";
+      currentProducts = currentProducts.sort((a, b) => {
+        const statusDiff = Number(productNeedsReopen(b)) - Number(productNeedsReopen(a));
+        if (statusDiff) return statusDiff;
+        return Number(b.isActive !== false) - Number(a.isActive !== false) || sortByCreatedDesc(a, b);
+      });
+      $("#productsTable").innerHTML = currentProducts.map(product => {
+        const status = productAdminStatus(product);
+        const needsReopen = productNeedsReopen(product);
+        return `
+        <tr class="${needsReopen ? "highlight-row" : ""}">
           <td><img class="table-thumb" src="${productMainImage(product)}" alt="${escapeHtml(product.name || "商品")}"></td>
-          <td><strong>${escapeHtml(product.name)}</strong><br><span class="meta">${escapeHtml(product.spec || "無規格")}</span></td>
+          <td><strong>${escapeHtml(product.name)}</strong><br><span class="meta">${escapeHtml(product.spec || "無規格")}</span>${needsReopen ? `<br><span class="meta">前台目前不顯示</span>` : ""}</td>
           <td><span class="pill">${escapeHtml(product.category || "其他")}</span></td>
           <td>${money(product.price)}</td>
           <td>${product.soldCount || 0} / ${isProductUnlimited(product) ? "不限量" : product.stockLimit || 0}</td>
           <td>${dateText(product.createdAt)}</td>
           <td>${dateText(product.updatedAt)}</td>
-          <td><span class="status ${product.isActive !== false ? "status-green" : "status-gray"}">${product.isActive !== false ? "上架" : "下架"}</span></td>
+          <td><span class="status status-${status.color}">${status.label}</span></td>
           <td>
             <button class="btn secondary inline editProduct" data-id="${product.id}">編輯</button>
+            ${needsReopen ? `<button class="btn success inline extendProduct" data-id="${product.id}">延長 7 天</button>` : ""}
+            <button class="btn secondary inline duplicateProduct" data-id="${product.id}">複製開團</button>
             <button class="btn danger inline deleteProduct" data-id="${product.id}">刪除</button>
           </td>
         </tr>
-      `).join("") || `<tr><td colspan="9" class="empty">尚無商品</td></tr>`;
+      `;
+      }).join("") || `<tr><td colspan="9" class="empty">尚無商品</td></tr>`;
 
       $$(".editProduct").forEach(button => button.addEventListener("click", async () => {
         const product = currentProducts.find(item => item.id === button.dataset.id);
         await openProductModal(product);
+      }));
+      $$(".extendProduct").forEach(button => button.addEventListener("click", async () => {
+        const product = currentProducts.find(item => item.id === button.dataset.id);
+        if (!product || !confirm(`將「${product.name}」截單時間延長 7 天？`)) return;
+        const dates = nextCampaignDates();
+        const pickupDate = toDate(product.pickupTime);
+        await updateDoc(doc(db, "products", product.id), {
+          isActive: true,
+          deadline: dates.deadline,
+          pickupTime: (!pickupDate || pickupDate < new Date()) ? dates.pickupTime : product.pickupTime,
+          saleEnd: "",
+          updatedAt: serverTimestamp()
+        });
+        await render();
+      }));
+      $$(".duplicateProduct").forEach(button => button.addEventListener("click", async () => {
+        const product = currentProducts.find(item => item.id === button.dataset.id);
+        if (!product) return;
+        await loadProductImages(product);
+        await openProductModal(duplicateProductDraft(product));
       }));
       $$(".deleteProduct").forEach(button => button.addEventListener("click", async () => {
         if (confirm("確認刪除此商品？")) {
@@ -1577,6 +1629,23 @@ async function initAdminProducts() {
         modal.classList.remove("open");
         await render();
       });
+    };
+
+    const duplicateProductDraft = product => {
+      const dates = nextCampaignDates();
+      return {
+        ...product,
+        id: "",
+        name: `${product.name || ""}（重新開團）`,
+        soldCount: 0,
+        isActive: true,
+        deadline: dates.deadline,
+        pickupTime: dates.pickupTime,
+        saleStart: "",
+        saleEnd: "",
+        createdAt: "",
+        updatedAt: ""
+      };
     };
 
     $("#newProductBtn").addEventListener("click", () => openProductModal());

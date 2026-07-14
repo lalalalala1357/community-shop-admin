@@ -1113,6 +1113,19 @@ body:not([data-admin-detail="true"]) .admin-close-link {
   color: #b91c1c;
 }
 
+.admin-alert {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 14px;
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #9a5a1f;
+}
+
+.admin-alert strong {
+  color: #c2410c;
+}
+
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--border);
