@@ -1284,6 +1284,19 @@ tbody tr:hover {
   color: var(--primary);
 }
 
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.notify-actions .btn {
+  min-height: 34px;
+  padding: 6px 9px;
+  font-size: 12px;
+}
+
 .stats {
   grid-template-columns: repeat(2, 1fr);
 }

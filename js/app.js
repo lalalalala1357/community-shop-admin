@@ -1815,8 +1815,55 @@ function orderRow(order) {
       <td>${order.quantity}</td>
       <td>${money(order.totalAmount)}</td>
       <td>${statusBadge(order.status)}</td>
+      <td>${orderNoticeActions(order)}</td>
     </tr>
   `;
+}
+
+function orderNoticeActions(order) {
+  return `
+    <div class="table-actions notify-actions">
+      <button class="btn secondary inline copyOrderNotice" type="button" data-id="${escapeHtml(order.orderId)}" data-type="ready">可取貨</button>
+      <button class="btn secondary inline copyOrderNotice" type="button" data-id="${escapeHtml(order.orderId)}" data-type="missed">未取貨</button>
+      <button class="btn secondary inline copyOrderNotice" type="button" data-id="${escapeHtml(order.orderId)}" data-type="cancel">取消確認</button>
+    </div>
+  `;
+}
+
+function orderNoticeMessage(order, type) {
+  const name = order.customerName ? `${order.customerName}您好` : "您好";
+  const product = order.productName || "您訂購的商品";
+  const orderId = order.orderId || "-";
+  const quantity = Number(order.quantity || 0);
+  const pickupTime = dateText(order.pickupTime);
+  const pickupLocation = order.pickupLocation || "請依公告取貨地點";
+  const total = money(order.totalAmount);
+  const lines = {
+    ready: [
+      `${name}，您訂購的「${product}」已可取貨。`,
+      `數量：${quantity} 份`,
+      `總金額：${total}`,
+      `取貨時間：${pickupTime}`,
+      `取貨地點：${pickupLocation}`,
+      `訂單編號：${orderId}`,
+      "請記得前來取貨，謝謝。"
+    ],
+    missed: [
+      `${name}，提醒您訂購的「${product}」尚未取貨。`,
+      `原取貨時間：${pickupTime}`,
+      `取貨地點：${pickupLocation}`,
+      `訂單編號：${orderId}`,
+      "方便的話請回覆可取貨時間，謝謝。"
+    ],
+    cancel: [
+      `${name}，已收到您的取消申請。`,
+      `商品：${product}`,
+      `數量：${quantity} 份`,
+      `訂單編號：${orderId}`,
+      "我們會協助確認並更新訂單狀態，謝謝。"
+    ]
+  };
+  return (lines[type] || lines.ready).join("\n");
 }
 
 async function initAdminOrders() {
@@ -1873,9 +1920,30 @@ async function initAdminOrders() {
       }));
     };
 
+    const bindOrderNoticeButtons = list => {
+      $$(".copyOrderNotice").forEach(button => button.addEventListener("click", async () => {
+        const order = list.find(item => item.orderId === button.dataset.id);
+        if (!order) return;
+        const originalText = button.textContent;
+        button.disabled = true;
+        try {
+          await copyText(orderNoticeMessage(order, button.dataset.type));
+          button.textContent = "已複製";
+        } catch (error) {
+          button.textContent = "複製失敗";
+        } finally {
+          setTimeout(() => {
+            button.disabled = false;
+            button.textContent = originalText;
+          }, 1400);
+        }
+      }));
+    };
+
     const render = list => {
       renderOrderSummary();
-      $("#ordersTable").innerHTML = list.map(orderRow).join("") || `<tr><td colspan="7" class="empty">查無訂單</td></tr>`;
+      $("#ordersTable").innerHTML = list.map(orderRow).join("") || `<tr><td colspan="8" class="empty">查無訂單</td></tr>`;
+      bindOrderNoticeButtons(list);
     };
     const refreshBatchButton = () => {
       $("#markProductPickupBtn").hidden = !categoryFilter;
