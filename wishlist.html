@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>許願清單｜社區小舖</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="wishlist">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="announcement-ticker">
+        <div class="container">
+          <div class="ticker-track"><span>想買什麼也可以告訴我們，下一團幫大家找找看</span></div>
+        </div>
+      </div>
+      <div class="container topbar-inner">
+        <a class="brand" href="index.html">社區小舖</a>
+        <nav class="nav">
+          <a href="index.html">首頁</a>
+          <a href="products.html">商品</a>
+          <a class="active" href="wishlist.html">許願清單</a>
+          <a href="order-search.html">查詢訂單</a>
+        </nav>
+      </div>
+    </header>
+    <main class="container">
+      <section class="card card-body" style="margin-top:18px">
+        <p class="eyebrow">想買什麼？</p>
+        <h1>許願清單</h1>
+        <p class="muted">有想團購的商品可以填在這裡，我們會列入下次開團參考。</p>
+        <form class="form" id="wishlistForm">
+          <div class="field"><label>姓名</label><input name="customerName" required autocomplete="name"></div>
+          <div class="field"><label>電話</label><input name="phone" required inputmode="tel" autocomplete="tel"></div>
+          <div class="field"><label>想買的商品</label><input name="itemName" required placeholder="例如：鮮乳、衛生紙、冷凍水餃"></div>
+          <div class="field"><label>補充說明</label><textarea name="note" placeholder="品牌、規格、預算都可以寫"></textarea></div>
+          <button class="btn">送出願望</button>
+        </form>
+        <div id="wishlistMessage" style="margin-top:14px"></div>
+      </section>
+    </main>
+    <nav class="bottom-nav">
+      <a href="index.html">首頁</a>
+      <a href="products.html">商品</a>
+      <a class="active" href="wishlist.html">許願</a>
+      <a href="order-search.html">查詢</a>
+    </nav>
+  </div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

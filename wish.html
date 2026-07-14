@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>許願池｜社區小舖</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="wish">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="index.html">社區小舖</a>
+        <nav class="nav">
+          <a href="index.html">首頁</a>
+          <a href="products.html">商品</a>
+          <a class="active" href="wish.html">許願池</a>
+          <a href="order-search.html">查詢訂單</a>
+        </nav>
+      </div>
+    </header>
+    <main class="container">
+      <section class="card card-body" style="margin-top:18px">
+        <p class="eyebrow">大家想買什麼？</p>
+        <h1>許願池</h1>
+        <p class="muted">想買的商品可以許願，看到也想買的就 +1，票數高的會列入下次開團參考。</p>
+        <form class="form" id="wishForm">
+          <div class="field"><label>商品名稱</label><input name="title" required placeholder="例如：鮮乳、衛生紙、冷凍水餃"></div>
+          <div class="field"><label>商品說明</label><textarea name="description" placeholder="品牌、規格、預算都可以寫"></textarea></div>
+          <div class="field"><label>商品照片（選填）</label><input name="image" type="file" accept="image/*"></div>
+          <div class="field"><label>許願人姓名</label><input name="customerName" required autocomplete="name"></div>
+          <div class="field"><label>手機</label><input name="phone" required inputmode="tel" autocomplete="tel"></div>
+          <button class="btn">送出許願</button>
+        </form>
+        <div id="wishMessage" style="margin-top:14px"></div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>熱門許願排行</h2>
+          <p>前 5 名</p>
+        </div>
+        <div class="grid product-grid" id="topWishList"></div>
+      </section>
+
+      <section id="allWishSection" hidden>
+        <div class="grid product-grid" id="wishList"></div>
+      </section>
+      <div style="padding:0 0 28px">
+        <button class="btn secondary" id="showAllWishesBtn" type="button">查看更多</button>
+      </div>
+    </main>
+    <nav class="bottom-nav">
+      <a href="index.html">首頁</a>
+      <a href="products.html">商品</a>
+      <a class="active" href="wish.html">許願池</a>
+      <a href="order-search.html">查詢</a>
+    </nav>
+  </div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

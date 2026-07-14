@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>訂單查詢｜社區團購站</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="search">
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="index.html">社區團購站</a>
+        <nav class="nav">
+          <a href="index.html">首頁</a>
+          <a href="products.html">商品</a>
+          <a href="wish.html">許願池</a>
+          <a class="active" href="order-search.html">查詢訂單</a>
+        </nav>
+      </div>
+    </header>
+    <main class="container">
+      <h1>訂單查詢</h1>
+      <form class="form card card-body search-form" id="searchForm">
+        <div class="field">
+          <label>手機號碼</label>
+          <input name="phone" inputmode="tel" placeholder="0912345678">
+        </div>
+        <div class="field">
+          <label>訂單編號</label>
+          <input name="orderId" placeholder="O202606200001">
+        </div>
+        <button class="btn" type="submit">查詢訂單</button>
+      </form>
+      <div class="segmented" aria-label="訂單分類">
+        <button class="orderTab active" type="button" data-tab="all">全部</button>
+        <button class="orderTab" type="button" data-tab="active">進行中</button>
+        <button class="orderTab" type="button" data-tab="history">歷史訂單</button>
+      </div>
+      <div class="sort-line">
+        <label for="orderSearchSort">排序</label>
+        <select id="orderSearchSort">
+          <option value="latest">最新</option>
+          <option value="oldest">最舊</option>
+        </select>
+      </div>
+      <section id="searchResults" class="grid" style="margin-top:16px"></section>
+    </main>
+    <nav class="bottom-nav">
+      <a href="index.html">首頁</a>
+      <a href="products.html">商品</a>
+      <a href="wish.html">許願池</a>
+      <a class="active" href="order-search.html">查詢</a>
+    </nav>
+  </div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

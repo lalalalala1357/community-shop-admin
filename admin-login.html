@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>管理端登入｜社區團購站</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="login">
+  <main class="container" style="padding-top:48px">
+    <div class="card card-body" style="max-width:420px;margin:0 auto">
+      <p class="eyebrow">管理端</p>
+      <h1>登入</h1>
+      <form class="form" id="loginForm" method="post">
+        <div class="field"><label>Email</label><input name="email" type="email" required autocomplete="email"></div>
+        <div class="field"><label>密碼</label><input name="password" type="password" required autocomplete="current-password"></div>
+        <button class="btn">登入</button>
+      </form>
+      <p class="meta" style="margin-top:14px">請使用 Firebase Authentication 建立的 Email 帳號登入。</p>
+    </div>
+  </main>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
