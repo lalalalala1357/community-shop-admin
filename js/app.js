@@ -380,6 +380,10 @@ function productMainImage(product) {
   return product.imageUrls?.[0] || product.imageUrl || placeholderImage(product.name);
 }
 
+function productPublicUrl(productId) {
+  return new URL(`product.html?id=${encodeURIComponent(productId || "")}`, "https://lalalalala1357.github.io/community-shop/").href;
+}
+
 async function loadProductImages(product) {
   if (!product?.id) return product.imageUrls?.length ? product.imageUrls : (product.imageUrl ? [product.imageUrl] : []);
   if (product.imageUrls?.length > 1) return product.imageUrls;
@@ -1574,6 +1578,7 @@ async function initAdminProducts() {
           <td>
             <button class="btn secondary inline editProduct" data-id="${product.id}">編輯</button>
             ${needsReopen ? `<button class="btn success inline extendProduct" data-id="${product.id}">延長 7 天</button>` : ""}
+            <button class="btn secondary inline copyProductLink" type="button" data-url="${escapeHtml(productPublicUrl(product.id))}" title="複製前台商品連結">複製連結</button>
             <button class="btn secondary inline duplicateProduct" data-id="${product.id}">複製開團</button>
             <button class="btn danger inline deleteProduct" data-id="${product.id}">刪除</button>
           </td>
@@ -1604,6 +1609,13 @@ async function initAdminProducts() {
         if (!product) return;
         await loadProductImages(product);
         await openProductModal(duplicateProductDraft(product));
+      }));
+      $$(".copyProductLink").forEach(button => button.addEventListener("click", async () => {
+        await copyText(button.dataset.url || "");
+        button.textContent = "已複製";
+        setTimeout(() => {
+          button.textContent = "複製連結";
+        }, 1400);
       }));
       $$(".deleteProduct").forEach(button => button.addEventListener("click", async () => {
         if (confirm("確認刪除此商品？")) {
