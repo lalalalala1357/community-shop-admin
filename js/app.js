@@ -1410,6 +1410,7 @@ function productForm(product = {}, categories = []) {
   return `
     <form class="form" id="productForm">
       <input type="hidden" name="id" value="${product.id || ""}">
+      <input type="hidden" name="sourceWishId" value="${escapeHtml(product.sourceWishId || "")}">
       <div class="field"><label>商品名稱</label><input name="name" value="${escapeHtml(product.name || "")}" required></div>
       <div class="field"><label>價格</label><input name="price" type="number" min="0" value="${product.price || ""}" required></div>
       <div class="field category-field">
@@ -1675,7 +1676,8 @@ async function initAdminProducts() {
         await Promise.all([
           setDoc(doc(db, "products", id), payload, { merge: true }),
           setDoc(doc(db, "productImages", id), { productId: id, imageUrls, updatedAt: serverTimestamp() }, { merge: true }),
-          saveProductCategory(category)
+          saveProductCategory(category),
+          form.get("sourceWishId") ? updateWishProgress({ id: form.get("sourceWishId") }, { accepted: true, opened: true, productId: id }) : Promise.resolve()
         ]);
         modal.classList.remove("open");
         await refresh();
@@ -2263,6 +2265,8 @@ async function allWishes({ activeOnly = false } = {}) {
 
 function wishCard(wish, { admin = false } = {}) {
   const reply = wishAdminReply(wish);
+  const accepted = wishIsAccepted(wish);
+  const opened = wishIsOpened(wish);
   return `
     <article class="card product-card wish-card">
       <img src="${wish.imageUrl || placeholderImage(wish.title || "許願")}" alt="${escapeHtml(wish.title)}">
@@ -2279,8 +2283,9 @@ function wishCard(wish, { admin = false } = {}) {
         ${reply ? `<div class="admin-reply"><strong>管理員回覆</strong><p>${escapeHtml(reply)}</p></div>` : ""}
         <div class="pill-row">
           ${admin ? `
-            <button class="btn secondary inline toggleWishBtn" data-id="${wish.id}" data-active="${wish.isActive !== false}">${wish.isActive === false ? "上架" : "下架"}</button>
-            <button class="btn danger inline deleteWishBtn" data-id="${wish.id}">刪除</button>
+            <button class="btn ${accepted ? "secondary" : "success"} inline toggleWishAcceptedBtn" type="button" data-id="${wish.id}" data-accepted="${accepted}" ${opened ? "disabled" : ""}>${opened ? "已開團" : (accepted ? "取消採納" : "採納")}</button>
+            <button class="btn secondary inline toggleWishBtn" type="button" data-id="${wish.id}" data-active="${wish.isActive !== false}">${wish.isActive === false ? "上架" : "下架"}</button>
+            <button class="btn danger inline deleteWishBtn" type="button" data-id="${wish.id}">刪除</button>
           ` : `<button class="btn inline voteWishBtn" data-id="${wish.id}">+1 我也想買</button>`}
         </div>
       </div>
@@ -2309,9 +2314,38 @@ function wishProgressBadges(wish) {
   `;
 }
 
+function wishProgressStatus({ accepted, opened }) {
+  if (opened) return "已採納/已開團";
+  if (accepted) return "已採納";
+  return "待評估";
+}
+
+function wishProgressPayload(wish, updates = {}) {
+  const opened = updates.opened ?? wishIsOpened(wish);
+  const accepted = (updates.accepted ?? wishIsAccepted(wish)) || opened;
+  const productId = updates.productId ?? wish.productId ?? wish.groupProductId ?? "";
+  return {
+    isAccepted: accepted,
+    accepted,
+    isOpened: opened,
+    opened,
+    productId: opened ? productId : "",
+    groupProductId: opened ? productId : "",
+    status: wishProgressStatus({ accepted, opened }),
+    updatedAt: serverTimestamp()
+  };
+}
+
+async function updateWishProgress(wish, updates = {}) {
+  if (!wish?.id) return;
+  await updateDoc(doc(db, "wishes", wish.id), wishProgressPayload(wish, updates));
+}
+
 function wishDetail(wish) {
   const voters = Array.isArray(wish.voters) ? wish.voters : [];
   const reply = wishAdminReply(wish);
+  const accepted = wishIsAccepted(wish);
+  const opened = wishIsOpened(wish);
   return `
     <button class="modal-close" id="closeWishDetailModal" type="button" aria-label="關閉">×</button>
     <div class="section-head">
@@ -2332,6 +2366,8 @@ function wishDetail(wish) {
       ${voters.length ? voters.map(phone => `<span class="pill">${escapeHtml(phone)}</span>`).join("") : `<span class="meta">尚無投票紀錄</span>`}
     </div>
     <div class="modal-actions">
+      <button class="btn ${accepted ? "secondary" : "success"} inline" id="toggleWishAcceptedBtn" type="button" data-id="${wish.id}">${accepted ? "取消採納" : "採納"}</button>
+      <button class="btn secondary inline" id="toggleWishOpenedBtn" type="button" data-id="${wish.id}">${opened ? "取消已開團" : "標記已開團"}</button>
       <button class="btn inline" id="createProductFromWishBtn" type="button" data-id="${wish.id}">開團</button>
     </div>
   `;
@@ -2433,11 +2469,23 @@ async function initAdminWishes() {
         panel.innerHTML = wishDetail(wish);
         modal.classList.add("open");
         $("#closeWishDetailModal").addEventListener("click", () => modal.classList.remove("open"), { once: true });
-        $("#createProductFromWishBtn").addEventListener("click", () => {
+        $("#toggleWishAcceptedBtn").addEventListener("click", async () => {
+          await updateWishProgress(wish, { accepted: !wishIsAccepted(wish), opened: wishIsOpened(wish) });
+          modal.classList.remove("open");
+          await render();
+        });
+        $("#toggleWishOpenedBtn").addEventListener("click", async () => {
+          await updateWishProgress(wish, { accepted: true, opened: !wishIsOpened(wish) });
+          modal.classList.remove("open");
+          await render();
+        });
+        $("#createProductFromWishBtn").addEventListener("click", async () => {
+          await updateWishProgress(wish, { accepted: true });
           sessionStorage.setItem("productDraftFromWish", JSON.stringify({
             name: wish.title || "",
             description: wish.description || "",
             imageUrl: wish.imageUrl || "",
+            sourceWishId: wish.id || "",
             category: "其他",
             spec: "",
             price: "",
@@ -2447,6 +2495,12 @@ async function initAdminWishes() {
           }));
           location.href = "admin-products.html?fromWish=1";
         });
+      }));
+      $$(".toggleWishAcceptedBtn").forEach(button => button.addEventListener("click", async () => {
+        const wish = wishes.find(item => item.id === button.dataset.id);
+        if (!wish) return;
+        await updateWishProgress(wish, { accepted: button.dataset.accepted !== "true", opened: wishIsOpened(wish) });
+        await render();
       }));
       $$(".toggleWishBtn").forEach(button => button.addEventListener("click", async () => {
         await updateDoc(doc(db, "wishes", button.dataset.id), {
